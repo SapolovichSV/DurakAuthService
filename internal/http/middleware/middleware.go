@@ -26,6 +26,6 @@ func (m *MiddleWare) Logging(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 		m.logger.Info(
 			"Served HTTP Request",
-			"with time:", time.Since(start))
+			"with time in ms:", time.Since(start).Milliseconds())
 	})
 }
