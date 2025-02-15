@@ -13,7 +13,8 @@ type Logger struct {
 
 func New(config config.Config) Logger {
 	handlerOptions := slog.HandlerOptions{
-		Level: slog.Level(config.LogLevel),
+		AddSource: true,
+		Level:     slog.Level(config.LogLevel),
 	}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &handlerOptions))
 	return Logger{
