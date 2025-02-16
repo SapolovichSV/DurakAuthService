@@ -1,0 +1,69 @@
+basePath: /api/v1
+definitions:
+  response.ErrorResp:
+    description: Error response information. with Error description and description
+      what caused this. if Error was anwser always be "error".
+    properties:
+      anwser:
+        type: string
+      cause:
+        type: string
+      error:
+        type: string
+    type: object
+  response.OkResp:
+    properties:
+      anwser:
+        type: string
+    type: object
+  user.User:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+host: localhost:8082
+info:
+  contact: {}
+  description: This is a auth service for my durak online.
+  title: Swagger Example API
+  version: "1.0"
+paths:
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Registering user by email,username,password
+      parameters:
+      - description: need Email Username Password
+        in: body
+        name: RegisterData
+        required: true
+        schema:
+          $ref: '#/definitions/user.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.OkResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResp'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResp'
+      summary: Register user
+      tags:
+      - Auth
+swagger: "2.0"

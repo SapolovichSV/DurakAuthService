@@ -5,11 +5,11 @@ import (
 )
 
 type User struct {
-	ID       int
+	ID       int    `swaggerignore:"true"`
 	Email    string `json:"email" validate:"required,email"`
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
-	Status   Status
+	Status   Status `swaggerignore:"true"`
 }
 type Status string
 

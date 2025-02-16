@@ -21,3 +21,8 @@ func New(config config.Config) Logger {
 		Logger: logger,
 	}
 }
+func (l *Logger) WithGroup(groupName string) Logger {
+	return Logger{
+		l.Logger.WithGroup(groupName),
+	}
+}
