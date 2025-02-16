@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/SapolovichSV/durak/auth/internal/config"
 	"github.com/SapolovichSV/durak/auth/internal/entities/user"
@@ -59,7 +60,11 @@ func main() {
 	mux.Handle("POST /auth/register", mw.Logging(http.HandlerFunc(controller.Register)))
 
 	server := server.New(config, mux)
-	server.ListenAndServe()
+	if err := server.ListenAndServe(); err != nil {
+		logger.Logger.Error("ListenAndServe", "error", err)
+		os.Exit(1)
+
+	}
 }
 func pingHandler(w http.ResponseWriter, r *http.Request) {
 

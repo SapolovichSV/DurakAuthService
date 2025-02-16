@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -41,7 +42,9 @@ func (c *Controller) Register(w http.ResponseWriter, r *http.Request) {
 			ErrorLogTopicName,
 			"read error:", err,
 		)
-		http.Error(w, response.NewErrorResp("can't read request data", err).JsonString(), http.StatusBadRequest)
+		errs := make(map[error]string, 1)
+		errs[err] = "can't read request data"
+		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
 		return
 	}
 
@@ -51,28 +54,39 @@ func (c *Controller) Register(w http.ResponseWriter, r *http.Request) {
 			ErrorLogTopicName,
 			"parse erorr:", err,
 		)
-		http.Error(w, response.NewErrorResp("can't parse json data", err).JsonString(), http.StatusBadRequest)
+		errs := make(map[error]string, 1)
+		errs[err] = "can't parse json data"
+		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
 		return
 	}
+	//TODO beatify validator errors
 	if err := validator.New().Struct(user); err != nil {
+		err := fmt.Errorf("%w", err.(validator.ValidationErrors))
 		c.logger.Logger.Warn(ErrorLogTopicName,
 			"validation error", err,
 		)
-		http.Error(w, response.NewErrorResp("invalid user data", err).JsonString(), http.StatusBadRequest)
+		//TODO refactor make hashing string, not errors
+		errs := make(map[error]string, 1)
+		errs[err] = "invalid user data"
+		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
 		return
 	}
 	if err := c.repo.AddUser(c.ctx, user); err != nil {
 		c.logger.Logger.Error(ErrorLogTopicName,
 			"add user error: ", err,
 		)
-		http.Error(w, response.NewErrorResp("can't add user to repo:", err).JsonString(), http.StatusInternalServerError)
+		errs := make(map[error]string, 1)
+		errs[err] = "can't add user to repo"
+		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 	if _, err := w.Write([]byte(
 		response.NewOkResp("created").JsonString(),
 	)); err != nil {
-		http.Error(w, response.NewErrorResp("can't write payload to response's body", err).JsonString(), http.StatusInternalServerError)
+		errs := make(map[error]string, 1)
+		errs[err] = "can't write payload to response's body"
+		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusInternalServerError)
 		return
 	}
 }
