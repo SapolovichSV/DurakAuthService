@@ -7,8 +7,9 @@ import (
 )
 
 type Repo interface {
-	AddUser(ctx context.Context, user user.User) error
+	AddUser(ctx context.Context, email, username, password string) error
 	GetUser(username string)
 	DeleteUser()
 	UpdateUser()
+	UserByEmailAndPassword(email string, password string) (user.User, error)
 }

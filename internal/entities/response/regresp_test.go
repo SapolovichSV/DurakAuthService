@@ -1,6 +1,7 @@
 package response
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -22,7 +23,7 @@ func TestErrorResp_JsonString(t *testing.T) {
 					"db error": "can't read",
 				},
 			},
-			want: "{\n\t \"anwser\": \"error\",\n\t \"can't read\": \"db error\"\n}",
+			want: "{\n\t \"anwser\": \"error\",\n\t \"db error\": \"can't read\"\n}",
 		},
 		{
 			name: "multiple errors",
@@ -34,7 +35,8 @@ func TestErrorResp_JsonString(t *testing.T) {
 					"internal error": "internal error",
 				},
 			},
-			want: "{\n\t \"anwser\": \"error\",\n\t \"can't read\": \"db error\",\n\t \"can't parse\": \"parse error\",\n\t \"internal error\": \"internal error\"\n}",
+			// Not used for direct string comparison
+			want: "",
 		},
 		{
 			name: "no errors",
@@ -54,7 +56,7 @@ func TestErrorResp_JsonString(t *testing.T) {
 					"": "empty error",
 				},
 			},
-			want: "{\n\t \"anwser\": \"error\",\n\t \"empty error\": \"\"\n}",
+			want: "{\n\t \"anwser\": \"error\",\n\t \"\": \"empty error\"\n}",
 		},
 		{
 			name: "error with special characters",
@@ -64,9 +66,10 @@ func TestErrorResp_JsonString(t *testing.T) {
 					"db error with \n newline and \" quote": "can't read",
 				},
 			},
-			want: "{\n\t \"anwser\": \"error\",\n\t \"can't read\": \"db error with \n newline and \" quote\"\n}",
+			want: "{\n\t \"anwser\": \"error\",\n\t \"db error with \n newline and \" quote\": \"can't read\"\n}",
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := ErrorResp{
@@ -74,23 +77,37 @@ func TestErrorResp_JsonString(t *testing.T) {
 				mapErrorCause: tt.fields.mapErrorCause,
 			}
 			got := r.JsonString()
-			if tt.name == "multiple errors" {
-				expected1 := "{\n\t \"anwser\": \"error\",\n\t \"can't read\": \"db error\",\n\t \"can't parse\": \"parse error\",\n\t \"internal error\": \"internal error\"\n}"
-				expected2 := "{\n\t \"anwser\": \"error\",\n\t \"can't read\": \"db error\",\n\t \"internal error\": \"internal error\",\n\t \"can't parse\": \"parse error\"\n}"
-				expected3 := "{\n\t \"anwser\": \"error\",\n\t \"can't parse\": \"parse error\",\n\t \"can't read\": \"db error\",\n\t \"internal error\": \"internal error\"\n}"
-				expected4 := "{\n\t \"anwser\": \"error\",\n\t \"can't parse\": \"parse error\",\n\t \"internal error\": \"internal error\",\n\t \"can't read\": \"db error\"\n}"
-				expected5 := "{\n\t \"anwser\": \"error\",\n\t \"internal error\": \"internal error\",\n\t \"can't parse\": \"parse error\",\n\t \"can't read\": \"db error\"\n}"
-				expected6 := "{\n\t \"anwser\": \"error\",\n\t \"internal error\": \"internal error\",\n\t \"can't read\": \"db error\",\n\t \"can't parse\": \"parse error\"\n}"
 
-				if got != expected1 && got != expected2 && got != expected3 && got != expected4 && got != expected5 && got != expected6 {
-					t.Errorf("ErrorResp.JsonString() = %s, want %s or %s or %s or %s or %s or %s", got, expected1, expected2, expected3, expected4, expected5, expected6)
+			if tt.name == "multiple errors" {
+				// For multiple errors, check that output has correct prefix and all expected key-value pairs
+				expectedPrefix := "{\n\t \"anwser\": \"error\","
+				if !strings.HasPrefix(got, expectedPrefix) {
+					t.Errorf("Expected output to have prefix %q, got %q", expectedPrefix, got)
+				}
+				// Check for presence of each key-value entry
+				pairs := []struct {
+					key   string
+					value string
+				}{
+					{"db error", "can't read"},
+					{"parse error", "can't parse"},
+					{"internal error", "internal error"},
+				}
+				for _, pair := range pairs {
+					entry := "\"" + pair.key + "\": \"" + pair.value + "\""
+					if !strings.Contains(got, entry) {
+						t.Errorf("Expected output to contain %q, got %q", entry, got)
+					}
+				}
+				// Check that output starts with { and ends with }
+				if !strings.HasPrefix(got, "{") || !strings.HasSuffix(got, "}") {
+					t.Errorf("Expected output to be enclosed in braces, got %q", got)
 				}
 			} else {
 				if got != tt.want {
 					t.Errorf("ErrorResp.JsonString() = \n%s\n,\n want \n%s", got, tt.want)
 				}
 			}
-
 		})
 	}
 }

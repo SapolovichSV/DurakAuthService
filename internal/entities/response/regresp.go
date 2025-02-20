@@ -14,7 +14,8 @@ type OkResp struct {
 // @Description with Error description and description what caused this.
 // @Description if Error was anwser always be "error".
 type ErrorResp struct {
-	Anwer         string `json:"anwser"`
+	Anwer string `json:"anwser"`
+	//map[Can't read db] = Internal error missing userID
 	mapErrorCause map[string]string
 }
 
@@ -31,10 +32,10 @@ func (r OkResp) JsonString() string {
 }
 
 // TODO refactor naming
-func NewErrorResp(mapErrorCause map[error]string) ErrorResp {
+func NewErrorResp(mapErrorCause map[string]error) ErrorResp {
 	mapErrString := make(map[string]string, len(mapErrorCause))
 	for k, v := range mapErrorCause {
-		mapErrString[k.Error()] = v
+		mapErrString[k] = v.Error()
 	}
 	return ErrorResp{
 		mapErrorCause: mapErrString,
@@ -63,8 +64,8 @@ func (r ErrorResp) JsonString() string {
 		builder.WriteString(
 			fmt.Sprintf(
 				"\t \"%s\": \"%s\"",
-				r.mapErrorCause[errs[0]],
 				errs[0],
+				r.mapErrorCause[errs[0]],
 			),
 		)
 		for i := 1; i < len(errs); i++ {
@@ -72,8 +73,8 @@ func (r ErrorResp) JsonString() string {
 			builder.WriteString(
 				fmt.Sprintf(
 					"\t \"%s\": \"%s\"",
-					r.mapErrorCause[errs[i]],
 					errs[i],
+					r.mapErrorCause[errs[i]],
 				),
 			)
 		}
