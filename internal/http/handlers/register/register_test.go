@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/SapolovichSV/durak/auth/internal/config"
+	"github.com/SapolovichSV/durak/auth/internal/http/handlers/register/mocks"
+
 	"github.com/SapolovichSV/durak/auth/internal/logger"
 )
 
@@ -46,9 +49,17 @@ func TestHandler_Register_OkCases(t *testing.T) {
 		w http.ResponseWriter
 		r *http.Request
 	}
-	tests = []struct {
+	tests := []struct {
 		name   string
 		fields fields
 		args   args
-	}{}
+	}{
+		{
+			name: "defaultTestCase",
+			fields: fields{
+				logger.New(config.Config{LogLevel: -4}),
+				mocks.
+			},
+		},
+	}
 }
