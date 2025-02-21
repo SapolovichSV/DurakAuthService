@@ -91,7 +91,6 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 		)
 
 		errs := response.BeatifyValidationErrors(err.(validator.ValidationErrors))
-		errs["invalid user data"] = err
 		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
 		return
 	}
