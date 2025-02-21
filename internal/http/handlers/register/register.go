@@ -36,7 +36,6 @@ func New(services handler.Services) Handler {
 	}
 }
 
-// TODO beautify validator errors
 // TODO if map[string]error{cause:err} work refactor code on down
 // Register godoc
 //
@@ -83,7 +82,7 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
 		return
 	}
-	//TODO beatify validator errors
+
 	if err := validator.New().Struct(user); err != nil {
 		c.log.Logger.Warn(
 			ErrRegisterLogTopicName,
