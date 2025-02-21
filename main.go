@@ -64,11 +64,11 @@ func main() {
 	servicesAggregator := handlers.New(ctx, logger, &mockRepo{}, &mockCookier{}, secretKey)
 
 	mux.Handle(
-		"POST /auth/register",
+		"POST /auth/login",
 		mw.Logging(http.HandlerFunc(login.New(*servicesAggregator).Login)),
 	)
 	mux.Handle(
-		"POST /auth/login",
+		"POST /auth/register",
 		mw.Logging(http.HandlerFunc(register.New(*servicesAggregator).Register)),
 	)
 

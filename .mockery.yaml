@@ -1,0 +1,17 @@
+with-expecter: true
+
+dir: "{{.InterfaceDirRelative}}/mocks"
+packages:
+  github.com/SapolovichSV/durak/auth/internal/http/handlers/register:
+    # place your package-specific config here
+    config:
+    interfaces:
+      # select the interfaces you want mocked
+      storage:
+        # Modify package-level config for this specific interface (if applicable)
+        config:
+  github.com/SapolovichSV/durak/auth/internal/http/handlers/login:
+    config:
+    interfaces:
+      storage:
+      cookier:

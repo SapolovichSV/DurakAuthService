@@ -20,7 +20,6 @@ type userLogin struct {
 	Password string `json:"password" validate:"required"`
 }
 
-//go:generate go run github.com/vektra/mockery/v2@v2.52.2 --name=storage
 type storage interface {
 	UserByEmailAndPassword(email, password string) (user.User, error)
 }
