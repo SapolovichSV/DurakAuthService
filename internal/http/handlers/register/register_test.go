@@ -138,5 +138,87 @@ func TestHandler_Register_OkCases(t *testing.T) {
 
 }
 func TestHandler_Register_ValidationErrorCases(t *testing.T) {
+	var methodPOST = "POST"
+	var handlerPath = "/auth/register"
+	type fields struct {
+		log  logger.Logger
+		repo storage
+		ctx  context.Context
+	}
+	defaultFields := func() fields {
+		return fields{
+			logger.New(config.Config{LogLevel: -4}),
 
+			func() storage {
+				mockStor := register.NewMockstorage(t)
+				return mockStor
+			}(),
+
+			context.Background(),
+		}
+	}
+
+	tests := []struct {
+		name     string
+		fields   fields
+		wantCode int
+		body     io.Reader
+	}{
+		{
+			name:     "Empty body fields",
+			fields:   defaultFields(),
+			wantCode: 400,
+			body: strings.NewReader(
+				`{"email":"","username":"","password":""}`,
+			),
+		},
+		{
+			name:     "Incorrect email",
+			fields:   defaultFields(),
+			wantCode: 400,
+			body: strings.NewReader(
+				`{"email":"asdadskjh@@@mail.com","username":"someGoodName","password":"123123"}`,
+			),
+		},
+		{
+			name:     "Only empty password",
+			fields:   defaultFields(),
+			wantCode: 400,
+			body: strings.NewReader(
+				`{"email":"asdadskjh@gmail.com","username":"someGoodName","password":""}`,
+			),
+		}, {
+			name:     "Only empty email",
+			fields:   defaultFields(),
+			wantCode: 400,
+			body: strings.NewReader(
+				`{"email":"","username":"someGoodName","password":"asads"}`,
+			),
+		}, {
+			name:     "Only empty username",
+			fields:   defaultFields(),
+			wantCode: 400,
+			body: strings.NewReader(
+				`{"email":"ballplayerr@gmail.com","username":"","password":"asads"}`,
+			),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(methodPOST, handlerPath, tt.body)
+			c := Handler{
+				log:  tt.fields.log,
+				repo: tt.fields.repo,
+				ctx:  tt.fields.ctx,
+			}
+			c.Register(w, r)
+			res := w.Result()
+			if res.StatusCode != tt.wantCode {
+				resBody, _ := io.ReadAll(res.Body)
+				t.Logf("resp body: %s", string(resBody))
+				t.Fatalf("want code : %d,have code : %d", tt.wantCode, res.StatusCode)
+			}
+		})
+	}
 }
