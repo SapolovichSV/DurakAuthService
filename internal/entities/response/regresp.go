@@ -3,6 +3,8 @@ package response
 import (
 	"fmt"
 	"strings"
+
+	"github.com/go-playground/validator"
 )
 
 type OkResp struct {
@@ -78,8 +80,21 @@ func (r ErrorResp) JsonString() string {
 				),
 			)
 		}
-		//		builder.WriteString("\t" + err + ": " + cause + ",\n")
 		builder.WriteString("\n}")
 		return builder.String()
 	}
+}
+func BeatifyValidationErrors(errs validator.ValidationErrors) map[string]error {
+	result := make(map[string]error, len(errs))
+	for _, err := range errs {
+		switch err.ActualTag() {
+		case "required":
+			result[fmt.Sprintf("field %s invalid", err.Field())] = fmt.Errorf("field %s is required", err.Field())
+		case "email":
+			result[fmt.Sprintf("field %s invalid", err.Field())] = fmt.Errorf("field %s is not email", err.Field())
+		default:
+			result[fmt.Sprintf("field %s invalid", err.Field())] = fmt.Errorf("field %s is not valid", err.Field())
+		}
+	}
+	return result
 }
