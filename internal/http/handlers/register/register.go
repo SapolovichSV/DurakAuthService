@@ -93,6 +93,7 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
 		return
 	}
+	//TODO make introspection of errors and make response code depends on type of error
 	if err := c.repo.AddUser(c.ctx, user.Email, user.Username, user.Password); err != nil {
 		c.log.Logger.Error(
 			ErrRegisterLogTopicName,

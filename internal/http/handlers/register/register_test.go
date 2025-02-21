@@ -2,6 +2,8 @@ package register
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/SapolovichSV/durak/auth/internal/config"
+	"github.com/SapolovichSV/durak/auth/internal/entities/response"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -138,7 +141,7 @@ func TestHandler_Register_OkCases(t *testing.T) {
 
 }
 func TestHandler_Register_ValidationErrorCases(t *testing.T) {
-	var methodPOST = "POST"
+	var methodPost = "POST"
 	var handlerPath = "/auth/register"
 	type fields struct {
 		log  logger.Logger
@@ -206,7 +209,7 @@ func TestHandler_Register_ValidationErrorCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest(methodPOST, handlerPath, tt.body)
+			r := httptest.NewRequest(methodPost, handlerPath, tt.body)
 			c := Handler{
 				log:  tt.fields.log,
 				repo: tt.fields.repo,
@@ -219,6 +222,153 @@ func TestHandler_Register_ValidationErrorCases(t *testing.T) {
 				t.Logf("resp body: %s", string(resBody))
 				t.Fatalf("want code : %d,have code : %d", tt.wantCode, res.StatusCode)
 			}
+		})
+	}
+}
+func TestHandler_Register_RepoErrorCases(t *testing.T) {
+	var methodPost = "POST"
+	var handlerPath = "/auth/registration"
+	type fields struct {
+		log  logger.Logger
+		repo storage
+		ctx  context.Context
+	}
+	type args struct {
+		emailUserPass []string
+		err           error
+	}
+	defaultFields := func(email, username, password string, returningError error) fields {
+		return fields{
+			logger.New(config.Config{LogLevel: -4}),
+
+			func() storage {
+				mockStor := register.NewMockstorage(t)
+				mockStor.EXPECT().AddUser(
+					mock.Anything, email, username, password,
+				).Return(returningError)
+				return mockStor
+			}(),
+			context.Background(),
+		}
+	}
+	tests := []struct {
+		name     string
+		args     args
+		fields   fields
+		wantCode int
+		wantBody string
+		body     io.Reader
+	}{
+		{
+			name: "AlreadyExistsError",
+			args: args{
+				emailUserPass: []string{"already@gmail.com", "staspiska", "pass123"},
+				err:           errors.New("such user already exist"),
+			},
+			wantCode: 500,
+			wantBody: response.NewErrorResp(
+				map[string]error{"can't add user to repo": errors.New("such user already exist")},
+			).JsonString(),
+			body: strings.NewReader(
+				`{"email":"already@gmail.com","username":"staspiska","password":"pass123"}`,
+			),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.fields = defaultFields(tt.args.emailUserPass[0], tt.args.emailUserPass[1], tt.args.emailUserPass[2], tt.args.err)
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(methodPost, handlerPath, tt.body)
+
+			c := Handler{
+				tt.fields.log,
+				tt.fields.repo,
+				tt.fields.ctx,
+			}
+
+			c.Register(w, r)
+			res := w.Result()
+
+			if res.StatusCode != tt.wantCode {
+				t.Fatalf("want code: %d have code: %d", tt.wantCode, res.StatusCode)
+			}
+			data, err := io.ReadAll(res.Body)
+			defer res.Body.Close()
+			if err != nil {
+				t.Fatalf("unexpected error at reading response data: %s", err.Error())
+			}
+			require.JSONEq(t, tt.wantBody, string(data))
+		})
+	}
+}
+func TestHandler_Register_UnmarshalErrorCases(t *testing.T) {
+	var methodPost = "POST"
+	var handlerPath = "/auth/register"
+	type fields struct {
+		log  logger.Logger
+		repo storage
+		ctx  context.Context
+	}
+	defaultFields := func() fields {
+		return fields{
+			logger.New(config.Config{LogLevel: -4}),
+			func() storage {
+				mockStor := register.NewMockstorage(t)
+				// Для случая ошибки разбора JSON репозиторий не вызывается
+				return mockStor
+			}(),
+			context.Background(),
+		}
+	}
+
+	tests := []struct {
+		name        string
+		fields      fields
+		body        io.Reader
+		wantCode    int
+		errContains string
+	}{
+		{
+			name:   "Invalid JSON input",
+			fields: defaultFields(),
+			// Передаём некорректный JSON (например, отсутствует закрывающая фигурная скобка)
+			body:        strings.NewReader(`{"email":"test@mail.com", "username": "test"`),
+			wantCode:    http.StatusBadRequest,
+			errContains: "can't parse json data",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(methodPost, handlerPath, tt.body)
+
+			c := Handler{
+				log:  tt.fields.log,
+				repo: tt.fields.repo,
+				ctx:  tt.fields.ctx,
+			}
+			c.Register(w, r)
+			res := w.Result()
+			defer res.Body.Close()
+
+			require.Equal(t, tt.wantCode, res.StatusCode, "unexpected status code")
+			data, err := io.ReadAll(res.Body)
+			require.NoError(t, err, "failed to read response body")
+
+			// Парсим ответ и проверяем, что он содержит требуемое сообщение об ошибке
+			var parsed map[string]string
+			err = json.Unmarshal(data, &parsed)
+			require.NoError(t, err, "response is not valid JSON")
+			require.Equal(t, "error", parsed["anwser"], "expected 'anwser' to be 'error'")
+			found := false
+			for key := range parsed {
+				if key != "anwser" && strings.Contains(key, tt.errContains) {
+					found = true
+					break
+				}
+			}
+			require.True(t, found, "expected error key to contain %q, got: %v", tt.errContains, parsed)
 		})
 	}
 }
