@@ -1,0 +1,10 @@
+services:
+  db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: pass123
+      POSTGRES_USER: server
+      POSTGRES_DB: authdb
+    ports:
+      - 5432:5432      
+

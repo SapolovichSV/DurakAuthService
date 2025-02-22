@@ -15,6 +15,8 @@ import (
 	"github.com/SapolovichSV/durak/auth/internal/http/middleware"
 	"github.com/SapolovichSV/durak/auth/internal/http/server"
 	"github.com/SapolovichSV/durak/auth/internal/logger"
+	"github.com/SapolovichSV/durak/auth/internal/storage/postgre"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	_ "github.com/SapolovichSV/durak/auth/docs"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -52,6 +54,19 @@ func main() {
 		"Config",
 		"Parsed", config,
 	)
+	pgxpool, err := pgxpool.New(ctx, config.DbUrl())
+
+	if err != nil || pgxpool.Ping(ctx) != nil {
+
+		logger.Error(
+			"Db",
+			"can't connect to db", err,
+			"can't ping db", pgxpool.Ping(ctx),
+		)
+		os.Exit(1)
+	}
+	//TODO ::::::::::::WARNING MOCKS
+	postgres := postgre.New(pgxpool, mockHasher{}, logger)
 	mux := http.NewServeMux()
 	mw := middleware.New(logger)
 
@@ -61,7 +76,7 @@ func main() {
 	))
 
 	//TODO ::::::::::::WARNING MOCKS
-	servicesAggregator := handlers.New(ctx, logger, &mockRepo{}, &mockCookier{}, secretKey)
+	servicesAggregator := handlers.New(ctx, logger, postgres, &mockCookier{}, secretKey)
 
 	mux.Handle(
 		"POST /auth/login",
@@ -76,9 +91,9 @@ func main() {
 	if err := server.ListenAndServe(); err != nil {
 		logger.Logger.Error("ListenAndServe", "error", err)
 		os.Exit(1)
-
 	}
 }
+
 func pingHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
@@ -118,4 +133,13 @@ func (c *mockCookier) Login(user user.User, w http.ResponseWriter) error {
 }
 func (c *mockCookier) Logout() {
 
+}
+
+type mockHasher struct{}
+
+func (hash mockHasher) Hash(arg string) (string, error) {
+	return arg, nil
+}
+func (unhash mockHasher) Unhash(arg string) (string, error) {
+	return arg, nil
 }

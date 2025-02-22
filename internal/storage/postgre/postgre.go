@@ -4,22 +4,23 @@ import (
 	"context"
 	"errors"
 
+	"github.com/SapolovichSV/durak/auth/internal/entities/user"
 	"github.com/SapolovichSV/durak/auth/internal/logger"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type hasher interface {
-	hash(string) (string, error)
-	unhash(string) (string, error)
+type Hasher interface {
+	Hash(string) (string, error)
+	Unhash(string) (string, error)
 }
 type RepoPostgre struct {
 	pgpool *pgxpool.Pool
-	hasher hasher
+	hasher Hasher
 	logger logger.Logger
 }
 
-func New(pgpool *pgxpool.Pool, hasher hasher, logger logger.Logger) *RepoPostgre {
+func New(pgpool *pgxpool.Pool, hasher Hasher, logger logger.Logger) *RepoPostgre {
 	return &RepoPostgre{
 		pgpool: pgpool,
 		hasher: hasher,
@@ -46,7 +47,7 @@ func (r *RepoPostgre) AddUser(ctx context.Context, email, username, password str
 		return errors.New("can't start transaction")
 	}
 
-	hashedPass, err := r.hasher.hash(password)
+	hashedPass, err := r.hasher.Hash(password)
 	if err != nil {
 		return err
 	}
@@ -71,4 +72,16 @@ func (r *RepoPostgre) AddUser(ctx context.Context, email, username, password str
 
 	r.logger.Logger.Info("Succesful ended transaction")
 	return nil
+}
+func (r *RepoPostgre) GetUser(username string) {
+	panic("implement me")
+}
+func (r *RepoPostgre) DeleteUser() {
+	panic("implement me")
+}
+func (r *RepoPostgre) UpdateUser() {
+	panic("implement me")
+}
+func (r *RepoPostgre) UserByEmailAndPassword(email string, password string) (user.User, error) {
+	panic("implement me")
 }

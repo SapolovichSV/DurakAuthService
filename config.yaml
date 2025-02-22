@@ -4,8 +4,8 @@ server:
   port: 8082
 db:
   dbmodel: postgres
-  username: commonuser
+  username: server
   password: pass123
-  host: localhost
+  host: 0.0.0.0
   port: 5432
   dbname: authdb
