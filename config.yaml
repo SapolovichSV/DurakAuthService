@@ -2,3 +2,10 @@ log_level: DEV
 server:
   addr: 127.0.0.1
   port: 8082
+db:
+  dbmodel: postgres
+  username: commonuser
+  password: pass123
+  host: localhost
+  port: 5432
+  dbname: authdb

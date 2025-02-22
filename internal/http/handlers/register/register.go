@@ -26,7 +26,6 @@ type storage interface {
 type Handler struct {
 	log  logger.Logger
 	repo storage
-	ctx  context.Context
 }
 
 func New(services handler.Services) Handler {
@@ -54,6 +53,7 @@ func New(services handler.Services) Handler {
 //
 //	@Router			/auth/register [POST]
 func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	c.log.Logger.Info(
 		"Register",
 		"with URI", r.Pattern,
@@ -65,8 +65,7 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 			ErrRegisterLogTopicName,
 			"read error:", err,
 		)
-		errs := make(map[string]error, 1)
-		errs["can't read request data"] = err
+		errs := map[string]error{"can't read request data": err}
 		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
 		return
 	}
@@ -77,8 +76,7 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 			ErrRegisterLogTopicName,
 			"parse erorr:", err,
 		)
-		errs := make(map[string]error, 1)
-		errs["can't parse json data"] = err
+		errs := map[string]error{"can't parse json data": err}
 		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
 		return
 	}
@@ -94,13 +92,12 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//TODO make introspection of errors and make response code depends on type of error
-	if err := c.repo.AddUser(c.ctx, user.Email, user.Username, user.Password); err != nil {
+	if err := c.repo.AddUser(ctx, user.Email, user.Username, user.Password); err != nil {
 		c.log.Logger.Error(
 			ErrRegisterLogTopicName,
 			"add user error: ", err,
 		)
-		errs := make(map[string]error, 1)
-		errs["can't add user to repo"] = err
+		errs := map[string]error{"can't add user to repo": err}
 		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusInternalServerError)
 		return
 	}
@@ -108,8 +105,7 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write([]byte(
 		response.NewOkResp("created").JsonString(),
 	)); err != nil {
-		errs := make(map[string]error, 1)
-		errs["can't write payload to response's body"] = err
+		errs := map[string]error{"can't write payload to response's body": err}
 		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusInternalServerError)
 		return
 	}

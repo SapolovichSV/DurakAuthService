@@ -9,10 +9,19 @@ import (
 type Config struct {
 	LogLevel int
 	Server   `yaml:"server"`
+	Database `yaml:"db"`
 }
 type Server struct {
 	Addr string `yaml:"addr"`
 	Port string `yaml:"port"`
+}
+type Database struct {
+	DbModel  string `yaml:"dbmodel"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	DbName   string `yaml:"dbname"`
 }
 type logLevel struct {
 	Level string `yaml:"log_level"`

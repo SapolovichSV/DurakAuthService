@@ -1,7 +1,6 @@
 package register
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -23,7 +22,6 @@ func TestHandler_Register(t *testing.T) {
 	type fields struct {
 		log  logger.Logger
 		repo storage
-		ctx  context.Context
 	}
 	type args struct {
 		w http.ResponseWriter
@@ -41,7 +39,6 @@ func TestHandler_Register(t *testing.T) {
 			c := Handler{
 				log:  tt.fields.log,
 				repo: tt.fields.repo,
-				ctx:  tt.fields.ctx,
 			}
 			c.Register(tt.args.w, tt.args.r)
 		})
@@ -53,7 +50,6 @@ func TestHandler_Register_OkCases(t *testing.T) {
 	type fields struct {
 		log  logger.Logger
 		repo storage
-		ctx  context.Context
 	}
 	type args struct {
 		w    *httptest.ResponseRecorder
@@ -74,8 +70,6 @@ func TestHandler_Register_OkCases(t *testing.T) {
 				).Return(nil)
 				return mockStor
 			}(),
-
-			context.Background(),
 		}
 	}
 
@@ -119,7 +113,6 @@ func TestHandler_Register_OkCases(t *testing.T) {
 			c := Handler{
 				tt.fields.log,
 				tt.fields.repo,
-				tt.fields.ctx,
 			}
 			c.Register(tt.args.w, r)
 
@@ -146,7 +139,6 @@ func TestHandler_Register_ValidationErrorCases(t *testing.T) {
 	type fields struct {
 		log  logger.Logger
 		repo storage
-		ctx  context.Context
 	}
 	defaultFields := func() fields {
 		return fields{
@@ -156,8 +148,6 @@ func TestHandler_Register_ValidationErrorCases(t *testing.T) {
 				mockStor := register.NewMockstorage(t)
 				return mockStor
 			}(),
-
-			context.Background(),
 		}
 	}
 
@@ -213,7 +203,6 @@ func TestHandler_Register_ValidationErrorCases(t *testing.T) {
 			c := Handler{
 				log:  tt.fields.log,
 				repo: tt.fields.repo,
-				ctx:  tt.fields.ctx,
 			}
 			c.Register(w, r)
 			res := w.Result()
@@ -231,7 +220,6 @@ func TestHandler_Register_RepoErrorCases(t *testing.T) {
 	type fields struct {
 		log  logger.Logger
 		repo storage
-		ctx  context.Context
 	}
 	type args struct {
 		emailUserPass []string
@@ -248,7 +236,6 @@ func TestHandler_Register_RepoErrorCases(t *testing.T) {
 				).Return(returningError)
 				return mockStor
 			}(),
-			context.Background(),
 		}
 	}
 	tests := []struct {
@@ -283,7 +270,6 @@ func TestHandler_Register_RepoErrorCases(t *testing.T) {
 			c := Handler{
 				tt.fields.log,
 				tt.fields.repo,
-				tt.fields.ctx,
 			}
 
 			c.Register(w, r)
@@ -307,7 +293,6 @@ func TestHandler_Register_UnmarshalErrorCases(t *testing.T) {
 	type fields struct {
 		log  logger.Logger
 		repo storage
-		ctx  context.Context
 	}
 	defaultFields := func() fields {
 		return fields{
@@ -317,7 +302,6 @@ func TestHandler_Register_UnmarshalErrorCases(t *testing.T) {
 				// Для случая ошибки разбора JSON репозиторий не вызывается
 				return mockStor
 			}(),
-			context.Background(),
 		}
 	}
 
@@ -346,7 +330,6 @@ func TestHandler_Register_UnmarshalErrorCases(t *testing.T) {
 			c := Handler{
 				log:  tt.fields.log,
 				repo: tt.fields.repo,
-				ctx:  tt.fields.ctx,
 			}
 			c.Register(w, r)
 			res := w.Result()
