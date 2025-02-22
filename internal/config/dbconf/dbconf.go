@@ -15,3 +15,6 @@ func (d *Database) DbUrl() string {
 	// urlExample := "postgres://username:password@localhost:5432/database_name"
 	return fmt.Sprintf("%s://%s:%s@%s:%d/%s", d.DbModel, d.Username, d.Password, d.Host, d.Port, d.DbName)
 }
+func (d *Database) DbUrlForMigrate() string {
+	return fmt.Sprintf("pgx5://%s:%s@%s:%d/%s", d.Username, d.Password, d.Host, d.Port, d.DbName)
+}

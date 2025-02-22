@@ -71,7 +71,7 @@ func (r *RepoPostgre) AddUser(ctx context.Context, email, username, password str
 	}
 
 	r.logger.Logger.Info("Succesful ended transaction")
-	return nil
+	return tx.Commit(ctx)
 }
 func (r *RepoPostgre) GetUser(username string) {
 	panic("implement me")

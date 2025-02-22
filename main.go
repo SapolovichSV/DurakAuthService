@@ -16,13 +16,18 @@ import (
 	"github.com/SapolovichSV/durak/auth/internal/http/server"
 	"github.com/SapolovichSV/durak/auth/internal/logger"
 	"github.com/SapolovichSV/durak/auth/internal/storage/postgre"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	_ "github.com/SapolovichSV/durak/auth/docs"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5/pgxpool"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 const pathToYamlConfig = "./config.yaml"
+const migrationsPath = "file://migrations"
 
 // TODO make secretKey really secret
 const secretKey = "123"
@@ -35,11 +40,12 @@ const secretKey = "123"
 // TODO jwtAuth and e.t.c
 // TODO test register
 // TODO write docs
+//
 //	@title			Swagger Example API
 //	@version		1.0
 //	@description	This is a auth service for my durak online.
 //	@termsOfService
-
+//
 // @host		localhost:8082
 // @BasePath	/api/v1
 func main() {
@@ -54,8 +60,39 @@ func main() {
 		"Config",
 		"Parsed", config,
 	)
-	pgxpool, err := pgxpool.New(ctx, config.DbUrl())
+	logger.Info("Starting migration")
+	m, err := migrate.New(
+		migrationsPath,
+		config.DbUrlForMigrate(),
+	)
+	if err != nil {
+		logger.Error(
+			"Can't migrate",
+			"error at New(): ", err,
+		)
+		os.Exit(1)
+	}
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 
+		logger.Error(
+			"Can't migrate",
+			"error at Up(): ", err,
+		)
+		m.GracefulStop <- true
+		m.Close()
+		os.Exit(1)
+	}
+	m.GracefulStop <- true
+	m.Close()
+	if _, err := m.Close(); err != nil {
+		logger.Error(
+			"Can't disconnect migration",
+			"error at Close():", err,
+		)
+	}
+	logger.Info("Succesfuc end migration")
+	pgxpool, err := pgxpool.New(ctx, config.DbUrl())
+	defer pgxpool.Close()
 	if err != nil || pgxpool.Ping(ctx) != nil {
 
 		logger.Error(
