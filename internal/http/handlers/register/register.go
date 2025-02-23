@@ -59,53 +59,31 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 		"Register",
 		"with URI", r.Pattern,
 	)
-	userData, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
+	user, err := userRegisterData(r)
 	if err != nil {
-		c.log.Logger.Error(
-			ErrRegisterLogTopicName,
-			"read error:", err,
-		)
-		errs := map[string]error{"can't read request data": err}
-		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
+		c.log.Logger.Error(ErrRegisterLogTopicName, "parse error:", err)
+
+		responseError(map[string]error{"can't parse json data": err}, w, http.StatusBadRequest)
 		return
 	}
-
-	var user userRegister
-	if err := json.Unmarshal(userData, &user); err != nil {
-		c.log.Logger.Error(
-			ErrRegisterLogTopicName,
-			"parse erorr:", err,
-		)
-		errs := map[string]error{"can't parse json data": err}
-		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
-		return
-	}
-
 	if err := validator.New().Struct(user); err != nil {
-		c.log.Logger.Warn(
-			ErrRegisterLogTopicName,
-			"validation error", err,
-		)
+		c.log.Logger.Warn(ErrRegisterLogTopicName, "validation error", err)
 
 		errs := response.BeatifyValidationErrors(err.(validator.ValidationErrors))
-		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
+		responseError(errs, w, http.StatusBadRequest)
 		return
 	}
-	//TODO make introspection of errors and make response code depends on type of error
 	if err := c.repo.AddUser(ctx, user.Email, user.Username, user.Password); err != nil {
 		if errors.Is(err, storage.ErrSuchUserExists{}) {
 			c.log.Logger.Info(ErrRegisterLogTopicName, "user already exists", user.Email)
-			errs := map[string]error{"user already exists": err}
-			http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
+
+			responseError(map[string]error{"user already exists": err}, w, http.StatusBadRequest)
 			return
+
 		} else {
-			c.log.Logger.Error(
-				ErrRegisterLogTopicName,
-				"add user error: ", err,
-			)
-			errs := map[string]error{"can't add user to repo": err}
-			http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusInternalServerError)
+			c.log.Logger.Error(ErrRegisterLogTopicName, "add user error: ", err)
+
+			responseError(map[string]error{"can't add user": err}, w, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -113,8 +91,23 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write([]byte(
 		response.NewOkResp("created").JsonString(),
 	)); err != nil {
-		errs := map[string]error{"can't write payload to response's body": err}
-		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusInternalServerError)
+		c.log.Logger.Error(ErrRegisterLogTopicName, "write error: ", err)
+
+		responseError(map[string]error{"can't write payload to response's body": err}, w, http.StatusInternalServerError)
 		return
 	}
+}
+func userRegisterData(r *http.Request) (userRegister, error) {
+	var user userRegister
+	userData, err := io.ReadAll(r.Body)
+	if err != nil {
+		return user, err
+	}
+	if err := json.Unmarshal(userData, &user); err != nil {
+		return user, err
+	}
+	return user, nil
+}
+func responseError(errs map[string]error, w http.ResponseWriter, statusCode int) {
+	http.Error(w, response.NewErrorResp(errs).JsonString(), statusCode)
 }

@@ -254,7 +254,7 @@ func TestHandler_Register_RepoErrorCases(t *testing.T) {
 			},
 			wantCode: 500,
 			wantBody: response.NewErrorResp(
-				map[string]error{"can't add user to repo": errors.New("such user already exist")},
+				map[string]error{"can't add user": errors.New("such user already exist")},
 			).JsonString(),
 			body: strings.NewReader(
 				`{"email":"already@gmail.com","username":"staspiska","password":"pass123"}`,
