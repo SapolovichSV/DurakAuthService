@@ -3,12 +3,14 @@ package register
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
 	"github.com/SapolovichSV/durak/auth/internal/entities/response"
-	handler "github.com/SapolovichSV/durak/auth/internal/http/handlers"
+	"github.com/SapolovichSV/durak/auth/internal/http/handlers"
 	"github.com/SapolovichSV/durak/auth/internal/logger"
+	"github.com/SapolovichSV/durak/auth/internal/storage"
 	"github.com/go-playground/validator"
 )
 
@@ -20,22 +22,21 @@ type userRegister struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type storage interface {
+type strge interface {
 	AddUser(ctx context.Context, email, username, password string) error
 }
 type Handler struct {
 	log  logger.Logger
-	repo storage
+	repo strge
 }
 
-func New(services handler.Services) Handler {
+func New(services handlers.Services) Handler {
 	return Handler{
 		log:  services.Logger.WithGroup("register"),
 		repo: services.Repo,
 	}
 }
 
-// TODO if map[string]error{cause:err} work refactor code on down
 // Register godoc
 //
 //	@Tags			Auth
@@ -93,13 +94,20 @@ func (c Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 	//TODO make introspection of errors and make response code depends on type of error
 	if err := c.repo.AddUser(ctx, user.Email, user.Username, user.Password); err != nil {
-		c.log.Logger.Error(
-			ErrRegisterLogTopicName,
-			"add user error: ", err,
-		)
-		errs := map[string]error{"can't add user to repo": err}
-		http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusInternalServerError)
-		return
+		if errors.Is(err, storage.ErrSuchUserExists{}) {
+			c.log.Logger.Info(ErrRegisterLogTopicName, "user already exists", user.Email)
+			errs := map[string]error{"user already exists": err}
+			http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusBadRequest)
+			return
+		} else {
+			c.log.Logger.Error(
+				ErrRegisterLogTopicName,
+				"add user error: ", err,
+			)
+			errs := map[string]error{"can't add user to repo": err}
+			http.Error(w, response.NewErrorResp(errs).JsonString(), http.StatusInternalServerError)
+			return
+		}
 	}
 	w.WriteHeader(http.StatusCreated)
 	if _, err := w.Write([]byte(

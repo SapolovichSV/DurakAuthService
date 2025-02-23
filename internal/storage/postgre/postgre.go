@@ -37,18 +37,33 @@ func (r *RepoPostgre) AddUser(ctx context.Context, email, username, password str
 		IsoLevel:   pgx.TxIsoLevel(pgx.ReadUncommitted),
 		AccessMode: pgx.TxAccessMode(pgx.ReadWrite),
 	})
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && err != pgx.ErrTxClosed {
+			cause := "can't rollback transaction at defer"
+			r.logger.Logger.Error(
+				ErrLogTopicName,
+				cause, err,
+			)
+		}
+	}()
 
 	if err != nil {
+		cause := "Can't start transaction"
 		r.logger.Logger.Warn(
 			ErrLogTopicName,
-			"Can't start transaction", err,
+			cause, err,
 		)
-		return errors.New("can't start transaction")
+		return remakeError(err, cause)
 	}
 
 	hashedPass, err := r.hasher.Hash(password)
+
 	if err != nil {
+		cause := "Can't hash password"
+		r.logger.Logger.Error(
+			ErrLogTopicName,
+			cause, err,
+		)
 		return err
 	}
 
@@ -57,17 +72,22 @@ func (r *RepoPostgre) AddUser(ctx context.Context, email, username, password str
 
 	res, err := tx.Exec(ctx, sqlExec, email, username, hashedPass)
 	if err != nil {
+		cause := "Can't execute transaction"
 		r.logger.Logger.Error(
 			ErrLogTopicName,
-			"Can't execute transaction", err)
-		return errors.New("can't exec transaction")
+			cause, err,
+		)
+		return remakeError(err, cause)
 	}
 
 	if !(res.RowsAffected() == 1 && res.Insert()) {
+		cause := "user not added or added incorectly"
+		err := errors.New("somenthing bad at adduser")
 		r.logger.Logger.Warn(
 			ErrLogTopicName,
-			"something goes wrong", "user not added or added incorectly")
-		return errors.New("something bad at adduser")
+			cause, err,
+		)
+		return remakeError(err, cause)
 	}
 
 	r.logger.Logger.Info("Succesful ended transaction")

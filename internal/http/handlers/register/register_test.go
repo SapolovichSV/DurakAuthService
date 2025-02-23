@@ -21,7 +21,7 @@ import (
 func TestHandler_Register(t *testing.T) {
 	type fields struct {
 		log  logger.Logger
-		repo storage
+		repo strge
 	}
 	type args struct {
 		w http.ResponseWriter
@@ -49,7 +49,7 @@ func TestHandler_Register_OkCases(t *testing.T) {
 	var handlerPath = "/auth/register"
 	type fields struct {
 		log  logger.Logger
-		repo storage
+		repo strge
 	}
 	type args struct {
 		w    *httptest.ResponseRecorder
@@ -63,8 +63,8 @@ func TestHandler_Register_OkCases(t *testing.T) {
 		return fields{
 			logger.New(config.Config{LogLevel: -4}),
 
-			func() storage {
-				mockStor := register.NewMockstorage(t)
+			func() strge {
+				mockStor := register.NewMockstrge(t)
 				mockStor.EXPECT().AddUser(
 					mock.Anything, mock.Anything, mock.Anything, mock.Anything,
 				).Return(nil)
@@ -138,14 +138,14 @@ func TestHandler_Register_ValidationErrorCases(t *testing.T) {
 	var handlerPath = "/auth/register"
 	type fields struct {
 		log  logger.Logger
-		repo storage
+		repo strge
 	}
 	defaultFields := func() fields {
 		return fields{
 			logger.New(config.Config{LogLevel: -4}),
 
-			func() storage {
-				mockStor := register.NewMockstorage(t)
+			func() strge {
+				mockStor := register.NewMockstrge(t)
 				return mockStor
 			}(),
 		}
@@ -219,7 +219,7 @@ func TestHandler_Register_RepoErrorCases(t *testing.T) {
 	var handlerPath = "/auth/registration"
 	type fields struct {
 		log  logger.Logger
-		repo storage
+		repo strge
 	}
 	type args struct {
 		emailUserPass []string
@@ -229,8 +229,8 @@ func TestHandler_Register_RepoErrorCases(t *testing.T) {
 		return fields{
 			logger.New(config.Config{LogLevel: -4}),
 
-			func() storage {
-				mockStor := register.NewMockstorage(t)
+			func() strge {
+				mockStor := register.NewMockstrge(t)
 				mockStor.EXPECT().AddUser(
 					mock.Anything, email, username, password,
 				).Return(returningError)
@@ -292,13 +292,13 @@ func TestHandler_Register_UnmarshalErrorCases(t *testing.T) {
 	var handlerPath = "/auth/register"
 	type fields struct {
 		log  logger.Logger
-		repo storage
+		repo strge
 	}
 	defaultFields := func() fields {
 		return fields{
 			logger.New(config.Config{LogLevel: -4}),
-			func() storage {
-				mockStor := register.NewMockstorage(t)
+			func() strge {
+				mockStor := register.NewMockstrge(t)
 				// Для случая ошибки разбора JSON репозиторий не вызывается
 				return mockStor
 			}(),

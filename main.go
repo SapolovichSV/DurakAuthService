@@ -83,14 +83,13 @@ func main() {
 		os.Exit(1)
 	}
 	m.GracefulStop <- true
-	m.Close()
 	if _, err := m.Close(); err != nil {
 		logger.Error(
 			"Can't disconnect migration",
 			"error at Close():", err,
 		)
 	}
-	logger.Info("Succesfuc end migration")
+	logger.Info("Succesful end migration")
 	pgxpool, err := pgxpool.New(ctx, config.DbUrl())
 	defer pgxpool.Close()
 	if err != nil || pgxpool.Ping(ctx) != nil {

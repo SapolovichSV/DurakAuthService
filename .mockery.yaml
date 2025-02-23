@@ -7,7 +7,7 @@ packages:
     config:
     interfaces:
       # select the interfaces you want mocked
-      storage:
+      strge:
         # Modify package-level config for this specific interface (if applicable)
         config:
   github.com/SapolovichSV/durak/auth/internal/http/handlers/login:
