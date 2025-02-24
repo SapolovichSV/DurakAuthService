@@ -12,10 +12,12 @@ import (
 
 type Hasher interface {
 	Hash(string) (string, error)
-	Unhash(string) (string, error)
+}
+type pgPool interface {
+	BeginTx(ctx context.Context, opts pgx.TxOptions) (pgx.Tx, error)
 }
 type RepoPostgre struct {
-	pgpool *pgxpool.Pool
+	pgpool pgPool
 	hasher Hasher
 	logger logger.Logger
 }
@@ -28,7 +30,6 @@ func New(pgpool *pgxpool.Pool, hasher Hasher, logger logger.Logger) *RepoPostgre
 	}
 }
 
-// TODO implement error types
 func (r *RepoPostgre) AddUser(ctx context.Context, email, username, password string) error {
 	var ErrLogTopicName = "Error at AddUser"
 	r.logger.Logger.Info("Starts transaction")

@@ -15,3 +15,7 @@ packages:
     interfaces:
       storage:
       cookier:
+  github.com/SapolovichSV/durak/auth/internal/storage/postgre:
+    config:
+    interfaces:
+      Hasher:
