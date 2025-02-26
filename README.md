@@ -16,7 +16,7 @@ Usage
 
 To start the authentication service, run the following command:
 sh
-    `docker compose up`
+    `docker compose up`    
     `./durakAuth`
 
 Contributing
