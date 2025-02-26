@@ -164,7 +164,6 @@ func TestRepoPostgre_AddUser_TestContainer_OkCases(t *testing.T) {
 
 }
 func createEmptyTableUsers(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
-	// IF NOT EXISTS because in multiply test using old roles not deleting,(too lazy to delete them for me)
 	sqlEnumUserRole := `CREATE TYPE user_role AS ENUM ('admin', 'user');`
 	sqlEnumUserStatus := `CREATE TYPE user_status AS ENUM ('offline', 'online');`
 

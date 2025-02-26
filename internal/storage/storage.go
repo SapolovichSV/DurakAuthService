@@ -11,5 +11,5 @@ type Repo interface {
 	GetUser(username string)
 	DeleteUser()
 	UpdateUser()
-	UserByEmailAndPassword(email string, password string) (user.User, error)
+	UserByEmailAndPassword(ctx context.Context, email string, password string) (user.User, error)
 }

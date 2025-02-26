@@ -192,9 +192,9 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8082",
-	BasePath:         "/api/v1",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Swagger Example API",
+	Title:            "Swagger docs for auth durak",
 	Description:      "This is a auth service for my durak online.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

@@ -102,6 +102,61 @@ func (r *RepoPostgre) DeleteUser() {
 func (r *RepoPostgre) UpdateUser() {
 	panic("implement me")
 }
-func (r *RepoPostgre) UserByEmailAndPassword(email string, password string) (user.User, error) {
-	panic("implement me")
+func (r *RepoPostgre) UserByEmailAndPassword(ctx context.Context, email string, password string) (user.User, error) {
+	var ErrLogTopicName = "Error at UserByEmailAndPassword"
+	r.logger.Logger.Info("starts transaction")
+
+	tx, err := r.pgpool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.RepeatableRead,
+		AccessMode: pgx.ReadOnly,
+	})
+	if err != nil {
+		cause := "can't start transaction"
+		r.logger.Logger.Error(ErrLogTopicName, cause, err)
+		return user.User{}, remakeError(err, cause)
+	}
+
+	sqlQuery := `SELECT id,email,username,status,user_role,passwordHASH FROM users WHERE email=$1;`
+	row := tx.QueryRow(ctx, sqlQuery, email)
+
+	var (
+		id             int
+		username       string
+		status         string
+		user_role      string
+		passHashFromDB string
+	)
+	//Really vpadlu pisat source ili che to tam
+	if err := row.Scan(&id, &email, &username, &status, &user_role, &passHashFromDB); err != nil {
+		cause := "error at getting user Info"
+		r.logger.Logger.Debug(ErrLogTopicName, cause, err)
+		return user.User{}, remakeError(err, "can't get user info")
+	}
+
+	passwordHASH, err := r.hasher.Hash(password)
+	if err != nil {
+		cause := "can't hash password"
+		r.logger.Logger.Error(ErrLogTopicName, cause, err)
+	}
+	if passHashFromDB != passwordHASH {
+		cause := "incorrect password"
+		r.logger.Logger.Debug(ErrLogTopicName, cause, errors.New("bad input pass have hash"+passHashFromDB+"want hash"+passwordHASH))
+		return user.User{}, remakeError(errors.New("incorrect pass"), cause)
+	}
+
+	userInfo := user.User{
+		ID:       id,
+		Email:    email,
+		Username: username,
+		Password: password,
+		Status: func() user.Status {
+			userStatus, err := user.BuildStatus(status)
+			if err != nil {
+				r.logger.Logger.Error(ErrLogTopicName, "impossible status", errors.New("get status"+status+"???"))
+				userStatus, _ = user.BuildStatus("offline")
+			}
+			return userStatus
+		}(),
+	}
+	return userInfo, nil
 }

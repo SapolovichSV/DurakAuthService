@@ -38,16 +38,14 @@ const secretKey = "123"
 // TODO migrations
 // TODO DB
 // TODO jwtAuth and e.t.c
-// TODO test register
-// TODO write docs
-//
-//	@title			Swagger Example API
+
+//	@title			Swagger docs for auth durak
 //	@version		1.0
 //	@description	This is a auth service for my durak online.
 //	@termsOfService
 //
-// @host		localhost:8082
-// @BasePath	/api/v1
+//	@host	localhost:8082
+//	@BasePath
 func main() {
 	ctx := context.Background()
 	config, err := config.Build(pathToYamlConfig)

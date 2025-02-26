@@ -7,7 +7,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// need to implement Unwrap() method for errors.Is() to work
 func remakeError(err error, at string) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {

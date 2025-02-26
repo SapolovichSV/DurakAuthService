@@ -2,12 +2,11 @@
     "swagger": "2.0",
     "info": {
         "description": "This is a auth service for my durak online.",
-        "title": "Swagger Example API",
+        "title": "Swagger docs for auth durak",
         "contact": {},
         "version": "1.0"
     },
     "host": "localhost:8082",
-    "basePath": "/api/v1",
     "paths": {
         "/auth/login": {
             "post": {
