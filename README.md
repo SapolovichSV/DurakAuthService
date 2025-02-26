@@ -14,8 +14,8 @@ To install and run the service, follow these steps:
     `go build -o durakAuth`
 Usage
 
-To start the authentication service, run the following command:
-sh
+To start the authentication service, run the following command:  
+
     `docker compose up`    
     `./durakAuth`
 
