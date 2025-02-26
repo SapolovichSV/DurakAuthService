@@ -91,7 +91,6 @@ func main() {
 	}
 	logger.Info("Succesful end migration")
 	pgxpool, err := pgxpool.New(ctx, config.DbUrl())
-	defer pgxpool.Close()
 	if err != nil || pgxpool.Ping(ctx) != nil {
 
 		logger.Error(
@@ -101,6 +100,7 @@ func main() {
 		)
 		os.Exit(1)
 	}
+	defer pgxpool.Close()
 	//TODO ::::::::::::WARNING MOCKS
 	postgres := postgre.New(pgxpool, mockHasher{}, logger)
 	mux := http.NewServeMux()
@@ -135,26 +135,6 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte("pong"))
-}
-
-// TODO DELETE
-type mockRepo struct{}
-
-func (r *mockRepo) AddUser(ctx context.Context, email, username, password string) error {
-	return nil
-}
-func (r *mockRepo) GetUser(username string) {
-	return
-}
-func (r *mockRepo) DeleteUser() {
-	return
-}
-func (r *mockRepo) UpdateUser() {
-	return
-}
-func (r *mockRepo) UserByEmailAndPassword(email string, password string) (user.User, error) {
-	fmt.Print("mockRepo UserByEmailAndPassword")
-	return user.User{}, nil
 }
 
 // TODO DELETE

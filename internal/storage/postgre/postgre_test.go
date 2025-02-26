@@ -2,6 +2,7 @@ package postgre
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 
@@ -10,11 +11,74 @@ import (
 	postgre "github.com/SapolovichSV/durak/auth/internal/storage/postgre/mocks"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 )
 
-//docker run --name test-postgres --rm -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postges -e POSTGRES_USER=postgres -p 5432:5432 -d  postgres
+func TestRepoPostgre_AddUser_Mock_HasherErrorCases(t *testing.T) {
+	ctx := t.Context()
+	log := logger.New(config.Config{LogLevel: -4})
 
+	type fields struct {
+		hasher Hasher
+		pgPool pgPool
+		logger logger.Logger
+	}
+	type args struct {
+		ctx      context.Context
+		email    string
+		username string
+		password string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "errorInHasher",
+			fields: func() fields {
+				mockHasher := postgre.NewMockHasher(t)
+				mockHasher.EXPECT().Hash(
+					"badHashing",
+				).Return("", errors.New("something bad at hasher"))
+				pgPoolMock, err := pgxmock.NewPool()
+				pgPoolMock.ExpectBeginTx(pgx.TxOptions{
+					IsoLevel:   pgx.TxIsoLevel(pgx.ReadUncommitted),
+					AccessMode: pgx.TxAccessMode(pgx.ReadWrite),
+				})
+				if err != nil {
+					t.Fatal("can't create pgmock")
+				}
+
+				return fields{
+					hasher: mockHasher,
+					pgPool: pgPoolMock,
+					logger: log.WithGroup("repoPostgre"),
+				}
+			}(),
+			args: args{
+				ctx:      ctx,
+				email:    "random@mail.com",
+				username: "randomUsernmae",
+				password: "badHashing",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := New(tt.fields.pgPool, tt.fields.hasher, tt.fields.logger)
+			if tt.wantErr {
+				assert.Error(t, repo.AddUser(ctx, tt.args.email, tt.args.username, tt.args.password), "want error but got nil")
+			}
+		})
+	}
+
+}
+
+// docker run --name test-postgres --rm -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postges -e POSTGRES_USER=postgres -p 5432:5432 -d  postgres
 func TestRepoPostgre_AddUser_TestContainer_OkCases(t *testing.T) {
 	if os.Getenv("DOCKERTESTDB") == "" {
 		t.Skip("Skip test: no docker test db available")
@@ -26,7 +90,11 @@ func TestRepoPostgre_AddUser_TestContainer_OkCases(t *testing.T) {
 
 	testPgPool, err := pgxpool.New(ctx, testConnString)
 	assert.NoError(t, err, "can't connect to test database")
-	defer dropTableAndTypes(ctx, testPgPool)
+	defer func() {
+		if err := dropTableAndTypes(ctx, testPgPool); err != nil {
+			t.Logf("unexpected error at dropping table and types %s", err)
+		}
+	}()
 
 	testLogger := logger.New(config.Config{LogLevel: -4})
 
@@ -85,7 +153,9 @@ func TestRepoPostgre_AddUser_TestContainer_OkCases(t *testing.T) {
 			}
 			assert.NoErrorf(t, err, "unexpected error at test.Query()", err)
 			var countOfRows int
-			res.Scan(&countOfRows)
+			if err := res.Scan(&countOfRows); err != nil {
+				t.Logf("unexpected error at scanning rows: %s", err)
+			}
 			if i != countOfRows {
 				assert.Equal(t, countOfRows, i, "COUNT(*) must be equal count of table tests")
 			}
@@ -113,7 +183,11 @@ func createEmptyTableUsers(t *testing.T, ctx context.Context, pool *pgxpool.Pool
 	batch.Queue(sqlEnumUserStatus)
 	batch.Queue(sqlCreateTableUsers)
 	tx, err := pool.Begin(ctx)
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && err != pgx.ErrTxClosed {
+			t.Logf("error in deferred rollback in createEmptyTableUsers() : %s", err)
+		}
+	}()
 
 	if err != nil {
 		t.Fatal("can't start transaction to create users table")

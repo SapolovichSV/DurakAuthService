@@ -7,7 +7,6 @@ import (
 	"github.com/SapolovichSV/durak/auth/internal/entities/user"
 	"github.com/SapolovichSV/durak/auth/internal/logger"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Hasher interface {
@@ -22,7 +21,7 @@ type RepoPostgre struct {
 	logger logger.Logger
 }
 
-func New(pgpool *pgxpool.Pool, hasher Hasher, logger logger.Logger) *RepoPostgre {
+func New(pgpool pgPool, hasher Hasher, logger logger.Logger) *RepoPostgre {
 	return &RepoPostgre{
 		pgpool: pgpool,
 		hasher: hasher,
